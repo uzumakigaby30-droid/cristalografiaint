@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cristalografía Interactiva</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{
+  --bg:#f0f3f9;--panel:#fff;--panel2:#f0f2f8;
+  --border:#dde1ec;--border2:#c4cade;
+  --accent:#1a6fc4;--accent2:#d92b2b;--accent3:#c07800;
+  --green:#1a8c3a;--text:#1a1e2e;--dim:#6a7090;--dim2:#9aa0b8;
+  --xa:#cc2222;--ya:#1a8c1a;--za:#1a50cc;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px;}
+header{display:flex;align-items:center;gap:12px;padding:6px 16px;background:#fff;border-bottom:2px solid var(--border);flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-icon{width:26px;height:26px;background:linear-gradient(135deg,#1a4a8c,#1a6fc4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.logo-text h1{font-size:.88rem;font-weight:700;color:var(--text);}
+.logo-text .sub{font-size:.55rem;color:var(--dim);}
+.tabs{display:flex;gap:2px;margin-left:auto;background:var(--bg);border-radius:4px;padding:2px;border:1px solid var(--border);}
+.tab{padding:4px 12px;font-size:.68rem;font-weight:500;background:transparent;border:none;color:var(--dim);cursor:pointer;border-radius:3px;transition:all .15s;}
+.tab.active{background:var(--accent);color:#fff;font-weight:700;}
+.tab:hover:not(.active){color:var(--text);background:var(--border);}
+.main{display:flex;flex:1;overflow:hidden;}
+/* LEFT */
+.lp{width:272px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sec{font-size:.57rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:6px 11px 4px;background:var(--panel2);border-bottom:1px solid var(--border);}
+/* CIF */
+.cif-zone{margin:7px;border:2px dashed var(--border2);border-radius:4px;padding:9px 7px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfd;}
+.cif-zone:hover,.cif-zone.drag{border-color:var(--accent);background:rgba(26,111,196,.05);}
+.cif-zone input{display:none;}
+.cif-zone .ci{font-size:1.3rem;}
+.cif-zone .ct{font-size:.66rem;font-weight:700;color:var(--accent);}
+.cif-zone .cs{font-size:.55rem;color:var(--dim);line-height:1.5;}
+.cif-loaded{margin:7px;background:#f0fff4;border:1px solid #88ccaa;border-radius:4px;padding:7px 9px;display:none;}
+.clf-name{font-size:.64rem;font-weight:700;color:var(--green);margin-bottom:3px;}
+.clf-det{font-size:.55rem;color:var(--dim);line-height:1.65;font-family:'JetBrains Mono',monospace;}
+.clf-det span{color:var(--text);font-weight:600;}
+.cif-clear{margin-top:4px;padding:2px 8px;background:transparent;border:1px solid #cc8888;color:var(--accent2);font-size:.55rem;cursor:pointer;border-radius:2px;}
+/* Bravais grid */
+.bravais-scroll{overflow-y:auto;max-height:210px;flex-shrink:0;}
+.bravais-scroll::-webkit-scrollbar{width:3px;}
+.bravais-scroll::-webkit-scrollbar-thumb{background:var(--border2);}
+.bravais-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:5px 7px;}
+.bbtn{padding:5px 5px;background:#fff;border:1.5px solid var(--border);color:var(--dim);font-size:.55rem;cursor:pointer;border-radius:3px;text-align:left;transition:all .15s;line-height:1.35;}
+.bbtn:hover{border-color:var(--accent);color:var(--text);}
+.bbtn.active{border-color:var(--accent);background:rgba(26,111,196,.09);color:var(--accent);font-weight:600;}
+.bbtn .bn{display:block;font-weight:800;font-size:.64rem;color:var(--accent3);margin-bottom:1px;}
+.bbtn .bsys{font-size:.48rem;color:var(--dim2);}
+/* Mode */
+.mode-sel{display:flex;border-bottom:1px solid var(--border);}
+.mb{flex:1;padding:6px 2px;background:transparent;border:none;border-right:1px solid var(--border);color:var(--dim);font-family:'Inter',sans-serif;font-size:.58rem;cursor:pointer;transition:all .15s;font-weight:500;line-height:1.3;}
+.mb:last-child{border-right:none;}
+.mb.active{background:rgba(26,111,196,.1);color:var(--accent);font-weight:700;}
+.mb:hover:not(.active){color:var(--text);}
+/* Inputs */
+.inp-area{padding:9px 10px;border-bottom:1px solid var(--border);}
+.inp-lbl{font-size:.55rem;color:var(--dim);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block;font-weight:700;}
+.idx-row{display:flex;gap:4px;align-items:center;}
+.brk{font-size:1.4rem;color:var(--accent);line-height:1;font-weight:300;}
+.brk.p{color:var(--accent2);}
+.ii{width:38px;height:36px;background:#fafbff;border:1.5px solid var(--border2);border-radius:3px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.9rem;text-align:center;outline:none;font-weight:700;}
+.ii.p{color:var(--accent2);}
+.ii:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26,111,196,.12);}
+.idx-sub{display:flex;gap:4px;margin-top:3px;padding-left:20px;}
+.isl{width:38px;text-align:center;font-size:.52rem;font-weight:700;}
+.isl.u{color:var(--xa);}
+.isl.v{color:var(--ya);}
+.isl.w{color:var(--za);}
+.nota{margin-top:6px;padding:4px 8px;background:#f0f4ff;border-left:3px solid var(--accent);font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--accent);font-weight:700;border-radius:0 3px 3px 0;}
+.nota.p{border-color:var(--accent2);color:var(--accent2);background:#fff4f4;}
+/* Steps */
+.steps{flex:1;overflow-y:auto;padding:7px 10px;}
+.steps::-webkit-scrollbar{width:3px;}
+.steps::-webkit-scrollbar-thumb{background:var(--border2);}
+.si{display:flex;gap:7px;margin-bottom:9px;opacity:.2;transition:opacity .35s,transform .35s;transform:translateX(-4px);}
+.si.active{opacity:1;transform:translateX(0);}
+.si.done{opacity:.55;transform:translateX(0);}
+.sn{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--dim2);display:flex;align-items:center;justify-content:center;font-size:.52rem;flex-shrink:0;margin-top:2px;color:var(--dim);}
+.si.active .sn{border-color:var(--accent);color:var(--accent);background:rgba(26,111,196,.1);}
+.si.done .sn{border-color:var(--accent);background:var(--accent);color:#fff;}
+.st{font-size:.61rem;line-height:1.6;color:var(--text);}
+.st strong{color:var(--accent);}
+.st .xa{color:var(--xa);font-weight:700;}
+.st .ya{color:var(--ya);font-weight:700;}
+.st .za{color:var(--za);font-weight:700;}
+.btn-row{display:flex;flex-shrink:0;}
+.abtn{flex:2;padding:8px;background:var(--accent);color:#fff;border:none;font-family:'Inter',sans-serif;font-weight:700;font-size:.67rem;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:opacity .15s;}
+.abtn:hover{opacity:.88;}
+.abtn.pb{background:var(--accent2);}
+.reset-btn{flex:1;padding:8px;background:#e8f0fb;color:var(--accent);border:none;border-left:1px solid var(--border);font-family:'Inter',sans-serif;font-weight:700;font-size:.67rem;cursor:pointer;transition:all .15s;}
+.reset-btn:hover{background:var(--border);}
+.slrow{display:flex;align-items:center;gap:6px;padding:5px 10px;border-top:1px solid var(--border);}
+.sllbl{font-size:.55rem;color:var(--dim);width:48px;flex-shrink:0;font-weight:600;}
+input[type=range]{flex:1;-webkit-appearance:none;height:3px;background:var(--border2);outline:none;border-radius:2px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--accent);border-radius:50%;cursor:pointer;}
+.slval{font-size:.58rem;color:var(--accent);width:22px;text-align:right;font-weight:700;}
+/* CANVAS */
+.ca{flex:1;position:relative;overflow:hidden;}
+#c{display:block;width:100%;height:100%;}
+/* LABELS */
+#ll{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;}
+.lbl{position:absolute;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;}
+.lbl.ax{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:.85rem;}
+.lbl.ax-a{color:var(--xa);}
+.lbl.ax-b{color:var(--ya);}
+.lbl.ax-c{color:var(--za);}
+.lbl.corner{color:#7a82aa;font-family:'JetBrains Mono',monospace;font-size:.52rem;}
+.lbl.origin{color:#996600;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:800;}
+.lbl.disp{font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;padding:1px 5px;border-radius:3px;}
+.lbl.disp-u{color:#fff;background:var(--xa);box-shadow:0 1px 4px rgba(0,0,0,.25);}
+.lbl.disp-v{color:#fff;background:var(--ya);box-shadow:0 1px 4px rgba(0,0,0,.25);}
+.lbl.disp-w{color:#fff;background:var(--za);box-shadow:0 1px 4px rgba(0,0,0,.25);}
+.lbl.endpoint{color:#fff;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;background:#1a4a8c;padding:2px 6px;border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.25);}
+/* HUD */
+#hud{position:absolute;bottom:12px;right:12px;background:rgba(255,255,255,.97);border:1.5px solid var(--border);padding:9px 13px;min-width:170px;border-radius:5px;box-shadow:0 2px 12px rgba(0,0,0,.1);}
+.hr{display:flex;align-items:baseline;gap:6px;margin-bottom:4px;}
+.hr:last-child{margin-bottom:0;}
+.hl{font-size:.5rem;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;width:36px;flex-shrink:0;font-weight:600;}
+.hv{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:1.0rem;}
+.hv.d{color:var(--accent);}
+.hv.pv{color:var(--accent2);}
+.hv.f{color:var(--accent3);}
+.hdiv{border:none;border-top:1px solid var(--border);margin:5px 0;}
+.hco{font-size:.58rem;color:var(--text);font-family:'JetBrains Mono',monospace;}
+.hco .cx{color:var(--xa);font-weight:700;}
+.hco .cy{color:var(--ya);font-weight:700;}
+.hco .cz{color:var(--za);font-weight:700;}
+.ov{position:absolute;top:9px;left:9px;display:flex;flex-direction:column;gap:4px;pointer-events:none;}
+.badge{padding:2px 8px;background:rgba(255,255,255,.95);border:1.5px solid var(--border);font-size:.55rem;color:var(--dim);border-radius:3px;font-family:'JetBrains Mono',monospace;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.badge span{color:var(--accent);font-weight:700;}
+.badge.cif-badge span{color:var(--green);}
+.ctrlbar{position:absolute;top:9px;right:9px;display:flex;flex-direction:column;gap:3px;}
+.cb{width:26px;height:26px;background:rgba(255,255,255,.95);border:1.5px solid var(--border);color:var(--dim);font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.cb:hover{color:var(--accent);border-color:var(--accent);}
+.axleg{position:absolute;bottom:12px;left:12px;display:flex;gap:9px;pointer-events:none;background:rgba(255,255,255,.9);padding:4px 9px;border-radius:3px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.axli{display:flex;align-items:center;gap:3px;font-size:.56rem;font-family:'JetBrains Mono',monospace;font-weight:600;}
+.axd{width:10px;height:3px;border-radius:2px;}
+/* RIGHT */
+.rp{width:258px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.rscroll{flex:1;overflow-y:auto;padding:9px 11px;}
+.rscroll::-webkit-scrollbar{width:3px;}
+.rscroll::-webkit-scrollbar-thumb{background:var(--border2);}
+.ib{margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid var(--border);}
+.ib:last-child{border-bottom:none;}
+.ib h3{font-size:.6rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;}
+.ib p{font-size:.61rem;line-height:1.7;color:var(--text);}
+.ib p strong{color:var(--accent);}
+.fb{margin:5px 0;padding:5px 8px;background:#f5f7ff;border-left:3px solid var(--accent3);font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#7a5500;line-height:1.6;border-radius:0 3px 3px 0;}
+.flist{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;}
+.ft{padding:2px 5px;background:#f0f2f8;border:1px solid var(--border2);font-family:'JetBrains Mono',monospace;font-size:.54rem;color:var(--dim);cursor:pointer;border-radius:2px;transition:all .15s;}
+.ft:hover{border-color:var(--accent3);color:var(--accent3);}
+.itable{width:100%;border-collapse:collapse;font-size:.58rem;margin-top:5px;}
+.itable th{color:var(--dim);font-weight:600;text-align:left;padding:2px 4px;border-bottom:1.5px solid var(--border);font-size:.52rem;text-transform:uppercase;}
+.itable td{padding:3px 4px;color:var(--text);font-family:'JetBrains Mono',monospace;border-bottom:1px solid #f0f2f8;}
+.itable td.v{color:var(--accent2);font-weight:700;}
+.sinfo{background:#f5f8ff;border:1.5px solid var(--border2);border-radius:4px;padding:8px 10px;margin-bottom:4px;}
+.sinfo .sn2{font-weight:700;color:var(--accent);font-size:.72rem;margin-bottom:4px;}
+.sinfo .sd{font-size:.58rem;color:var(--dim);line-height:1.75;}
+.sinfo .sd span{color:var(--text);font-weight:600;}
+.cifinfo{background:#f0fff4;border:1px solid #88ccaa;border-radius:4px;padding:8px 10px;margin-bottom:5px;font-size:.58rem;line-height:1.8;font-family:'JetBrains Mono',monospace;}
+.cifinfo .cif-sg{font-size:.76rem;font-weight:800;color:var(--accent3);margin-bottom:4px;font-family:'Inter',sans-serif;}
+.cifinfo span{color:var(--text);font-weight:600;}
+.cifinfo .lbl2{color:var(--dim);}
+.atom-dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:3px;border:1px solid rgba(0,0,0,.15);}
+.atom-table{width:100%;border-collapse:collapse;font-size:.56rem;margin-top:4px;}
+.atom-table th{color:var(--dim);font-weight:600;text-align:left;padding:2px 3px;border-bottom:1.5px solid var(--border);font-size:.5rem;text-transform:uppercase;}
+.atom-table td{padding:2px 3px;color:var(--text);font-family:'JetBrains Mono',monospace;border-bottom:1px solid #f0f2f8;}
+/* XRD */
+.xrd-panel{padding:8px 11px;border-top:2px solid var(--border);flex-shrink:0;}
+.xrd-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.xrd-title{font-size:.6rem;font-weight:700;color:var(--dim);letter-spacing:.07em;text-transform:uppercase;}
+.xrd-recalc{padding:2px 8px;background:var(--accent);color:#fff;border:none;font-size:.56rem;font-weight:600;cursor:pointer;border-radius:2px;display:none;}
+#xrd-canvas{width:100%;height:100px;border-radius:3px;border:1px solid var(--border);background:#fff;display:block;}
+.xrd-info{font-size:.52rem;color:var(--dim2);margin-top:2px;text-align:center;}
+.xrd-peaks{margin-top:4px;max-height:52px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:.51rem;color:var(--dim);line-height:1.6;}
+/* PAGES */
+.page{display:none;}
+.page.active{display:flex;flex:1;overflow:hidden;}
+/* TUT */
+.tpage{flex:1;overflow-y:auto;padding:22px 38px;max-width:800px;margin:0 auto;}
+.tpage::-webkit-scrollbar{width:4px;}
+.tpage::-webkit-scrollbar-thumb{background:var(--border2);}
+.th1{font-size:1.25rem;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.th2{font-size:.88rem;font-weight:700;color:var(--accent3);margin:18px 0 7px;padding-bottom:4px;border-bottom:2px solid var(--border);}
+.tp{font-size:.68rem;line-height:1.85;color:var(--text);margin-bottom:7px;}
+.tp strong{color:var(--accent);}
+.tp code{background:#f0f4ff;padding:1px 5px;border:1px solid var(--border2);color:var(--accent3);font-family:'JetBrains Mono',monospace;font-size:.85em;border-radius:2px;}
+.tbox{margin:8px 0;padding:9px 11px;background:#f5f8ff;border-left:3px solid var(--accent);font-size:.65rem;line-height:1.8;color:var(--text);border-radius:0 3px 3px 0;}
+.tbox.warn{border-color:var(--accent2);background:#fff5f5;}
+.tbox.note{border-color:var(--accent3);background:#fffcf0;}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:9px 0;}
+.tcard{padding:10px;background:#fafbff;border:1.5px solid var(--border);border-radius:4px;}
+.tcard .cl{font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;font-weight:600;}
+.tcard .cn{font-family:'JetBrains Mono',monospace;font-size:1.15rem;font-weight:800;margin-bottom:3px;}
+.dc{color:var(--accent)}.pc{color:var(--accent2)}.fc{color:var(--accent3)}
+.tcard p{font-size:.61rem;color:var(--text);line-height:1.6;}
+.tbtn{display:inline-block;margin-top:6px;padding:4px 10px;background:var(--accent);color:#fff;font-family:'Inter',sans-serif;font-size:.61rem;font-weight:700;cursor:pointer;border:none;border-radius:2px;text-transform:uppercase;}
+.tbtn.p{background:var(--accent2);}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    <div class="logo-text">
+      <h1>Cristalografía Interactiva</h1>
+      <div class="sub">14 Redes de Bravais · Índices de Miller · CIF · XRD</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('vis',this)">Visualizador</button>
+    <button class="tab" onclick="switchTab('tut',this)">Guía Teórica</button>
+  </div>
+</header>
+
+<div id="page-vis" class="page active main">
+  <div class="lp">
+    <div class="sec">Importar CIF</div>
+    <div class="cif-zone" id="cif-zone" onclick="document.getElementById('cif-input').click()"
+         ondragover="cifDragOver(event)" ondragleave="cifDragLeave()" ondrop="cifDrop(event)">
+      <input type="file" id="cif-input" accept=".cif" onchange="loadCIF(this.files[0])">
+      <div class="ci">📂</div><div class="ct">Cargar .cif</div>
+      <div class="cs">Haz clic o arrastra · COD · Materials Project</div>
+    </div>
+    <div class="cif-loaded" id="cif-loaded">
+      <div class="clf-name">✓ <span id="cif-fname">—</span></div>
+      <div class="clf-det" id="cif-det"></div>
+      <button class="cif-clear" onclick="clearCIF()">✕ Quitar</button>
+    </div>
+    <div class="sec">14 Redes de Bravais</div>
+    <div class="bravais-scroll"><div class="bravais-grid" id="bravais-grid"></div></div>
+    <div class="sec">Índices de Miller</div>
+    <div class="mode-sel">
+      <button class="mb active" id="btn-dir"  onclick="setMode('direction')">Dir.<br>[uvw]</button>
+      <button class="mb"        id="btn-famd" onclick="setMode('family-dir')">Fam.<br>〈uvw〉</button>
+      <button class="mb"        id="btn-pln"  onclick="setMode('plane')">Plano<br>(hkl)</button>
+      <button class="mb"        id="btn-famp" onclick="setMode('family-plane')">Fam.<br>{hkl}</button>
+    </div>
+    <div class="inp-area" id="inp-dir">
+      <span class="inp-lbl">Índices [uvw]</span>
+      <div class="idx-row">
+        <span class="brk">[</span>
+        <input class="ii" id="du" type="number" value="1" min="-3" max="3" oninput="onIdx()">
+        <input class="ii" id="dv" type="number" value="1" min="-3" max="3" oninput="onIdx()">
+        <input class="ii" id="dw" type="number" value="0" min="-3" max="3" oninput="onIdx()">
+        <span class="brk">]</span>
+      </div>
+      <div class="idx-sub"><span class="isl u">u→a</span><span class="isl v">v→b</span><span class="isl w">w→c</span></div>
+      <div class="nota" id="dir-nota">[110]</div>
+    </div>
+    <div class="inp-area" id="inp-pln" style="display:none">
+      <span class="inp-lbl">Índices (hkl)</span>
+      <div class="idx-row">
+        <span class="brk p">(</span>
+        <input class="ii p" id="ph" type="number" value="1" min="-3" max="3" oninput="onIdx()">
+        <input class="ii p" id="pk" type="number" value="1" min="-3" max="3" oninput="onIdx()">
+        <input class="ii p" id="pl" type="number" value="0" min="-3" max="3" oninput="onIdx()">
+        <span class="brk p">)</span>
+      </div>
+      <div class="idx-sub"><span class="isl u">h→a</span><span class="isl v">k→b</span><span class="isl w">l→c</span></div>
+      <div class="nota p" id="pln-nota">(110)</div>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="btn-row">
+      <button class="abtn" id="abtn" onclick="triggerAnim()">▶ Animar</button>
+      <button class="reset-btn" onclick="resetView()">↺ Reset</button>
+    </div>
+    <div class="slrow" id="slrow" style="display:none">
+      <span class="sllbl">Opacidad</span>
+      <input type="range" id="sl-op" min="10" max="90" value="55" oninput="setOp(this.value)">
+      <span class="slval" id="sl-val">55%</span>
+    </div>
+  </div>
+
+  <div class="ca" id="ca">
+    <canvas id="c"></canvas>
+    <div id="ll">
+      <div class="lbl ax ax-a" id="L-a">a</div>
+      <div class="lbl ax ax-b" id="L-b">b</div>
+      <div class="lbl ax ax-c" id="L-c">c</div>
+      <div class="lbl origin"  id="L-000">(0,0,0)</div>
+      <div class="lbl corner"  id="L-100">(1,0,0)</div>
+      <div class="lbl corner"  id="L-010">(0,1,0)</div>
+      <div class="lbl corner"  id="L-001">(0,0,1)</div>
+      <div class="lbl corner"  id="L-111">(1,1,1)</div>
+      <div class="lbl disp disp-u" id="L-du" style="display:none"></div>
+      <div class="lbl disp disp-v" id="L-dv" style="display:none"></div>
+      <div class="lbl disp disp-w" id="L-dw" style="display:none"></div>
+      <div class="lbl endpoint"    id="L-ep" style="display:none"></div>
+    </div>
+    <div id="hud">
+      <div class="hr"><span class="hl">Dir.</span><span class="hv d" id="hud-d">[110]</span></div>
+      <div class="hr"><span class="hl">Plano</span><span class="hv pv" id="hud-p">(110)</span></div>
+      <hr class="hdiv">
+      <div class="hr" id="hud-ep-row">
+        <span class="hl">Fin</span>
+        <span class="hco">(<span class="cx" id="hud-ex">1</span>,<span class="cy" id="hud-ey">1</span>,<span class="cz" id="hud-ez">0</span>)</span>
+      </div>
+      <div class="hr" id="hud-ic-row" style="display:none">
+        <span class="hl">Inters.</span><span class="hco" id="hud-ic"></span>
+      </div>
+      <div class="hr"><span class="hl">|v|</span><span class="hco" id="hud-len">√2≈1.414</span></div>
+    </div>
+    <div class="ov">
+      <div class="badge" id="badge-mode">MODO: <span>DIRECCIÓN</span></div>
+      <div class="badge">ACTUAL: <span id="badge-val">[110]</span></div>
+      <div class="badge" id="badge-struct">RED: <span>cP</span></div>
+      <div class="badge cif-badge" id="badge-cif" style="display:none">CIF: <span id="badge-cif-name">—</span></div>
+    </div>
+    <div class="ctrlbar">
+      <button class="cb" title="Reset cámara" onclick="resetCam()">⟲</button>
+      <button class="cb" onclick="camView('front')">F</button>
+      <button class="cb" onclick="camView('side')">L</button>
+      <button class="cb" onclick="camView('top')">T</button>
+      <button class="cb" onclick="camView('iso')">I</button>
+    </div>
+    <div class="axleg">
+      <div class="axli"><div class="axd" style="background:var(--xa)"></div><span style="color:var(--xa)">a(u)</span></div>
+      <div class="axli"><div class="axd" style="background:var(--ya)"></div><span style="color:var(--ya)">b(v)</span></div>
+      <div class="axli"><div class="axd" style="background:var(--za)"></div><span style="color:var(--za)">c(w)</span></div>
+    </div>
+  </div>
+
+  <div class="rp">
+    <div class="sec">Información</div>
+    <div class="rscroll">
+      <div class="ib" id="ib-struct">
+        <h3>🔷 Red de Bravais</h3>
+        <div class="sinfo" id="sinfo-box"></div>
+      </div>
+      <div class="ib" id="ib-cif-info" style="display:none">
+        <h3>📄 Datos CIF</h3>
+        <div class="cifinfo" id="cifinfo-box"></div>
+        <div id="ib-atoms-wrap" style="display:none">
+          <p style="font-size:.56rem;color:var(--dim);margin:5px 0 3px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Sitios Atómicos</p>
+          <table class="atom-table">
+            <tr><th>Átomo</th><th>x</th><th>y</th><th>z</th></tr>
+            <tbody id="atom-rows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ib" id="ib-dir-info">
+        <h3>📐 Dirección</h3>
+        <p id="ib-dir-txt">r = u·a + v·b + w·c</p>
+        <div class="fb" id="ib-dir-vec"></div>
+      </div>
+      <div class="ib" id="ib-pln-info" style="display:none">
+        <h3>🔷 Plano</h3>
+        <p id="ib-pln-txt"></p>
+        <table class="itable"><tr><th>Eje</th><th>Índice</th><th>Intercept</th></tr><tbody id="ic-rows"></tbody></table>
+      </div>
+      <div class="ib" id="ib-fam-info" style="display:none">
+        <h3>👪 Familia</h3>
+        <p id="ib-fam-txt"></p>
+        <div class="flist" id="fam-list"></div>
+      </div>
+      <div class="ib">
+        <h3>📏 Espaciado d</h3>
+        <div class="fb" id="ib-dsp">d = a/√(h²+k²+l²)</div>
+      </div>
+      <div class="ib">
+        <h3>🔑 Ejes</h3>
+        <p style="font-size:.6rem;line-height:1.75;">
+          <span style="color:var(--xa)">u→<strong>a</strong></span> frente &nbsp;
+          <span style="color:var(--ya)">v→<strong>b</strong></span> derecha &nbsp;
+          <span style="color:var(--za)">w→<strong>c</strong></span> arriba
+        </p>
+      </div>
+    </div>
+    <div class="xrd-panel">
+      <div class="xrd-hdr">
+        <span class="xrd-title">⚡ Difracción XRD</span>
+        <button class="xrd-recalc" id="xrd-recalc" onclick="computeXRD()">⟳ Recalcular</button>
+      </div>
+      <canvas id="xrd-canvas" width="500" height="100"></canvas>
+      <div class="xrd-info" id="xrd-info">Carga un CIF para simular el patrón XRD</div>
+      <div class="xrd-peaks" id="xrd-peaks"></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-tut" class="page" style="overflow-y:auto">
+  <div class="tpage">
+    <h1 class="th1">Guía de Cristalografía</h1>
+    <p class="tp">Convención: <strong>a(u)</strong> frente · <strong>b(v)</strong> derecha · <strong>c(w)</strong> arriba.</p>
+    <h2 class="th2">Las 14 Redes de Bravais</h2>
+    <div class="tbox note">P=Primitiva · I=Centrada cuerpo · F=Centrada caras · A/B/C=Centrada base · R=Romboédrica</div>
+    <h2 class="th2">Índices de Miller</h2>
+    <div class="tgrid">
+      <div class="tcard"><div class="cl">Dirección</div><div class="cn dc">[uvw]</div><p>Vector entero. <code>[111]</code> = diagonal de cuerpo.</p><button class="tbtn" onclick="las('direction',1,1,1)">▶ [111]</button></div>
+      <div class="tcard"><div class="cl">Familia Dir.</div><div class="cn fc">〈uvw〉</div><p>Equivalentes por simetría.</p><button class="tbtn" onclick="las('family-dir',1,1,0)">▶ 〈110〉</button></div>
+      <div class="tcard"><div class="cl">Plano</div><div class="cn pc">(hkl)</div><p>Recíprocos de intercepts en a,b,c.</p><button class="tbtn p" onclick="las('plane',1,1,1)">▶ (111)</button></div>
+      <div class="tcard"><div class="cl">Familia Plano</div><div class="cn pc">{hkl}</div><p>Todos los planos equivalentes.</p><button class="tbtn p" onclick="las('family-plane',1,1,0)">▶ {110}</button></div>
+    </div>
+    <h2 class="th2">Ley de Bragg</h2>
+    <div class="tbox note"><strong>nλ = 2d·sin(θ)</strong> &nbsp; d = a/√(h²+k²+l²) para cúbica · λ(Cu Kα)=1.5406 Å</div>
+    <div class="tbox warn"><strong>Regla:</strong> [½,½,0]×2 = <code>[110]</code>. Miller siempre usa enteros.</div>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════
+// AXIS: a(u)→X  b(v)→Z  c(w)→Y
+// ═══════════════════════════════════════
+function c2t(a,b,c){return new THREE.Vector3(a,c,b);}
+
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0xf0f3f9,1);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(40,1,0.01,200);
+scene.add(new THREE.AmbientLight(0xffffff,0.9));
+const kl=new THREE.DirectionalLight(0xffffff,0.65);kl.position.set(3,5,2);scene.add(kl);
+const fl=new THREE.DirectionalLight(0x8899cc,0.25);fl.position.set(-2,1,-3);scene.add(fl);
+
+let sph={theta:-0.85,phi:1.02,r:5.2};
+const tgt=new THREE.Vector3(0.5,0.5,0.5);
+function updateCam(){
+  camera.position.x=tgt.x+sph.r*Math.sin(sph.phi)*Math.sin(sph.theta);
+  camera.position.y=tgt.y+sph.r*Math.cos(sph.phi);
+  camera.position.z=tgt.z+sph.r*Math.sin(sph.phi)*Math.cos(sph.theta);
+  camera.lookAt(tgt);
+}
+updateCam();
+let drag=false,pm={x:0,y:0};
+canvas.addEventListener('mousedown',e=>{drag=true;pm={x:e.clientX,y:e.clientY};});
+window.addEventListener('mousemove',e=>{if(!drag)return;sph.theta-=(e.clientX-pm.x)*.007;sph.phi=Math.max(.06,Math.min(Math.PI-.06,sph.phi+(e.clientY-pm.y)*.007));pm={x:e.clientX,y:e.clientY};updateCam();});
+window.addEventListener('mouseup',()=>drag=false);
+canvas.addEventListener('wheel',e=>{sph.r=Math.max(1.5,Math.min(16,sph.r+e.deltaY*.005));updateCam();},{passive:true});
+canvas.addEventListener('touchstart',e=>{drag=true;pm={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+canvas.addEventListener('touchmove',e=>{if(!drag)return;sph.theta-=(e.touches[0].clientX-pm.x)*.007;sph.phi=Math.max(.06,Math.min(Math.PI-.06,sph.phi+(e.touches[0].clientY-pm.y)*.007));pm={x:e.touches[0].clientX,y:e.touches[0].clientY};updateCam();},{passive:true});
+canvas.addEventListener('touchend',()=>drag=false);
+function resetCam(){sph={theta:-0.85,phi:1.02,r:5.2};updateCam();}
+function camView(v){const m={front:{theta:-0.85,phi:1.02},side:{theta:Math.PI/2,phi:1.1},top:{theta:-0.85,phi:.07},iso:{theta:-.6,phi:.82}};Object.assign(sph,m[v]);updateCam();}
+function resize(){const el=canvas.parentElement;renderer.setSize(el.clientWidth,el.clientHeight,false);camera.aspect=el.clientWidth/el.clientHeight;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);resize();
+
+let cellParams={a:1,b:1,c:1,alpha:90,beta:90,gamma:90};
+function frac2world(fa,fb,fc){
+  const{a,b,c,alpha,beta,gamma}=cellParams;
+  const ar=alpha*Math.PI/180,br=beta*Math.PI/180,gr=gamma*Math.PI/180;
+  const cg=Math.cos(gr),sg=Math.max(Math.sin(gr),1e-9),ca=Math.cos(ar),cb=Math.cos(br);
+  const v=Math.sqrt(Math.max(0,1-ca*ca-cb*cb-cg*cg+2*ca*cb*cg));
+  return c2t(fa+b/a*cg*fb+c/a*cb*fc, b/a*sg*fb+c/a*(ca-cb*cg)/sg*fc, c/a*v/sg*fc);
+}
+
+let gCell=null,gAxes=null,gAtoms=null,gExtra=null;
+let gArrow=null,gArrows=[],gPlane=null,gPlanes=[];
+function disposeGrp(g){
+  if(!g)return;
+  g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());});
+  scene.remove(g);
+}
+function clearVectors(){
+  disposeGrp(gArrow);gArrow=null;
+  gArrows.forEach(a=>disposeGrp(a));gArrows=[];
+  disposeGrp(gPlane);gPlane=null;
+  gPlanes.forEach(p=>disposeGrp(p));gPlanes=[];
+  ['L-du','L-dv','L-dw','L-ep'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  dynLbls={};
+}
+
+// ═══════════════════════════════════════
+// 14 BRAVAIS LATTICES
+// ═══════════════════════════════════════
+const BRAVAIS=[
+  {id:'cP',sys:'Cúbico',      sym:'P',name:'Cúbica Primitiva',          a:1,   b:1,   c:1,   al:90,  be:90,  ga:90,  extra:[],                                                                            denseDir:'[100]',densePlane:'(100)',pack:'52%',  ex:'Po'},
+  {id:'cI',sys:'Cúbico',      sym:'I',name:'Cúbica Centrada (BCC)',      a:1,   b:1,   c:1,   al:90,  be:90,  ga:90,  extra:[[.5,.5,.5]],                                                                  denseDir:'[111]',densePlane:'(110)',pack:'68%',  ex:'Fe-α, W, Cr, Mo'},
+  {id:'cF',sys:'Cúbico',      sym:'F',name:'Cúbica Caras Cent. (FCC)',   a:1,   b:1,   c:1,   al:90,  be:90,  ga:90,  extra:[[.5,.5,0],[.5,0,.5],[0,.5,.5],[.5,.5,1],[.5,1,.5],[1,.5,.5]],               denseDir:'[110]',densePlane:'(111)',pack:'74%',  ex:'Al, Cu, Au, Ag'},
+  {id:'tP',sys:'Tetragonal',  sym:'P',name:'Tetragonal Primitiva',       a:1,   b:1,   c:1.55,al:90,  be:90,  ga:90,  extra:[],                                                                            denseDir:'[100]',densePlane:'(001)',pack:'~52%', ex:'In, Sn-β'},
+  {id:'tI',sys:'Tetragonal',  sym:'I',name:'Tetragonal Centrada',        a:1,   b:1,   c:1.55,al:90,  be:90,  ga:90,  extra:[[.5,.5,.5]],                                                                  denseDir:'[111]',densePlane:'(110)',pack:'~68%', ex:'TiO₂ (rutilo)'},
+  {id:'oP',sys:'Ortorrómbico',sym:'P',name:'Ortorrómbica Primitiva',     a:1,   b:1.3, c:1.7, al:90,  be:90,  ga:90,  extra:[],                                                                            denseDir:'[100]',densePlane:'(001)',pack:'~52%', ex:'S, Ga, U'},
+  {id:'oI',sys:'Ortorrómbico',sym:'I',name:'Ortorrómbica Centrada',      a:1,   b:1.3, c:1.7, al:90,  be:90,  ga:90,  extra:[[.5,.5,.5]],                                                                  denseDir:'[111]',densePlane:'(110)',pack:'~68%', ex:'Ba, Li (baja T)'},
+  {id:'oF',sys:'Ortorrómbico',sym:'F',name:'Ortorrómbica Caras Cent.',   a:1,   b:1.3, c:1.7, al:90,  be:90,  ga:90,  extra:[[.5,.5,0],[.5,0,.5],[0,.5,.5],[.5,.5,1],[.5,1,.5],[1,.5,.5]],               denseDir:'[110]',densePlane:'(001)',pack:'~74%', ex:'U'},
+  {id:'oC',sys:'Ortorrómbico',sym:'C',name:'Ortorrómbica Base Cent.',    a:1,   b:1.3, c:1.7, al:90,  be:90,  ga:90,  extra:[[.5,.5,0],[.5,.5,1]],                                                         denseDir:'[110]',densePlane:'(001)',pack:'~60%', ex:'CaCl₂'},
+  {id:'hP',sys:'Hexagonal',   sym:'P',name:'Hexagonal (HCP)',            a:1,   b:1,   c:1.63,al:90,  be:90,  ga:120, extra:[[1/3,2/3,.5]],                                                                denseDir:'[11̄20]',densePlane:'(0001)',pack:'74%',ex:'Mg, Zn, Ti, Co'},
+  {id:'hR',sys:'Trigonal',    sym:'R',name:'Romboédrica',                a:1,   b:1,   c:1,   al:70,  be:70,  ga:70,  extra:[],                                                                            denseDir:'[111]',densePlane:'(111)',pack:'~62%', ex:'Bi, As, Sb'},
+  {id:'mP',sys:'Monoclínico', sym:'P',name:'Monoclínica Primitiva',      a:1,   b:1.2, c:1.5, al:90,  be:110, ga:90,  extra:[],                                                                            denseDir:'[010]',densePlane:'(010)',pack:'~52%', ex:'Yeso'},
+  {id:'mC',sys:'Monoclínico', sym:'C',name:'Monoclínica Base Cent.',     a:1,   b:1.2, c:1.5, al:90,  be:110, ga:90,  extra:[[.5,.5,0],[.5,.5,1]],                                                         denseDir:'[010]',densePlane:'(010)',pack:'~60%', ex:'Mica'},
+  {id:'aP',sys:'Triclínico',  sym:'P',name:'Triclínica Primitiva',       a:1,   b:1.2, c:1.4, al:80,  be:70,  ga:100, extra:[],                                                                            denseDir:'[010]',densePlane:'(010)',pack:'~52%', ex:'Feldespato, Turquesa'},
+];
+
+// Build Bravais grid buttons
+(function(){
+  const grid=document.getElementById('bravais-grid');
+  grid.innerHTML=BRAVAIS.map((b,i)=>
+    `<button class="bbtn${i===0?' active':''}" id="bb-${b.id}" onclick="setLattice('${b.id}')">
+      <span class="bn">${b.id}</span>${b.name}<span class="bsys">${b.sys} · ${b.sym}</span>
+    </button>`
+  ).join('');
+})();
+
+let currentLattice='cP';
+let currentDef=BRAVAIS[0];
+
+function setLattice(id){
+  const def=BRAVAIS.find(b=>b.id===id);
+  if(!def)return;
+  currentLattice=id; currentDef=def;
+  document.querySelectorAll('.bbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('bb-'+id).classList.add('active');
+  cellParams={a:1,b:def.b,c:def.c,alpha:def.al,beta:def.be,gamma:def.ga};
+  buildCell();buildAxes();buildExtraPoints(def);
+  if(!cifLoaded){clearVectors();redraw();}
+  document.getElementById('badge-struct').innerHTML=`RED: <span>${id}</span>`;
+  updateStructInfo(def);
+}
+
+function buildExtraPoints(def){
+  disposeGrp(gExtra);gExtra=null;
+  if(!def.extra||!def.extra.length)return;
+  const g=new THREE.Group();
+  const mat=new THREE.MeshPhongMaterial({color:0xdd3311,specular:0xffffff,shininess:90,emissive:0xdd3311,emissiveIntensity:.12});
+  def.extra.forEach(([fa,fb,fc])=>{
+    const m=new THREE.Mesh(new THREE.SphereGeometry(.058,20,14),mat.clone());
+    m.position.copy(frac2world(fa,fb,fc));g.add(m);
+  });
+  scene.add(g);gExtra=g;
+}
+
+// Corner vertex positions
+function cellCorners(){
+  return [[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,1,1]].map(([a,b,c])=>frac2world(a,b,c));
+}
+
+function buildCell(){
+  disposeGrp(gCell);
+  const g=new THREE.Group();
+  const W=cellCorners();
+  const edges=[[0,1],[0,2],[0,3],[1,4],[1,5],[2,4],[2,6],[3,5],[3,6],[4,7],[5,7],[6,7]];
+  const eMat=new THREE.MeshPhongMaterial({color:0x2a3a7a,specular:0x8899cc,shininess:40});
+  edges.forEach(([i,j])=>{
+    const f=W[i],t=W[j],d=new THREE.Vector3().subVectors(t,f),l=d.length();
+    const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.011,.011,l,6),eMat.clone());
+    cyl.position.copy(f).addScaledVector(d.clone().normalize(),l/2);
+    cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());
+    g.add(cyl);
+  });
+  const vMat=new THREE.MeshPhongMaterial({color:0x1a3a8a,specular:0xaabbdd,shininess:60});
+  W.forEach(p=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.032,12,8),vMat.clone());m.position.copy(p);g.add(m);});
+  scene.add(g);gCell=g;
+  tgt.copy(frac2world(.5,.5,.5));
+}
+
+const AX=1.68;
+function buildAxes(){
+  disposeGrp(gAxes);
+  const g=new THREE.Group();
+  [{fa:AX,fb:0,fc:0,c:0xcc2222},{fa:0,fb:AX,fc:0,c:0x1a8c1a},{fa:0,fb:0,fc:AX,c:0x1a50cc}].forEach(({fa,fb,fc,c})=>{
+    const end=frac2world(fa,fb,fc),dn=end.clone().normalize(),l=end.length();
+    const mat=new THREE.MeshPhongMaterial({color:c,specular:0xffffff,shininess:60});
+    const sh=new THREE.Mesh(new THREE.CylinderGeometry(.024,.024,l,10),mat.clone());
+    sh.position.copy(end).multiplyScalar(.5);sh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dn);g.add(sh);
+    const cn=new THREE.Mesh(new THREE.ConeGeometry(.052,.13,10),mat.clone());
+    cn.position.copy(end);cn.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dn);g.add(cn);
+  });
+  scene.add(g);gAxes=g;
+}
+
+function updateStructInfo(def){
+  document.getElementById('sinfo-box').innerHTML=`
+    <div class="sn2">${def.name}</div>
+    <div class="sd">
+      Sistema: <span>${def.sys}</span> &nbsp; Centering: <span>${def.sym}</span><br>
+      a:b:c = <span>1 : ${def.b.toFixed(2)} : ${def.c.toFixed(2)}</span><br>
+      α β γ = <span>${def.al}° ${def.be}° ${def.ga}°</span><br>
+      Empaquetamiento: <span>${def.pack}</span><br>
+      Dir. densa: <span>${def.denseDir}</span> &nbsp; Plano: <span>${def.densePlane}</span><br>
+      Ejemplos: <span>${def.ex}</span>
+    </div>`;
+}
+
+// ── CPK ──
+const CPK={H:{c:0xffffff,r:.31},C:{c:0x505050,r:.77},N:{c:0x3050f8,r:.75},O:{c:0xff0d0d,r:.73},
+  F:{c:0x90e050,r:.71},Na:{c:0xab5cf2,r:1.86},Mg:{c:0x8aff00,r:1.60},Al:{c:0xbfa6a6,r:1.43},
+  Si:{c:0xf0c8a0,r:1.11},S:{c:0xdddd00,r:1.02},Cl:{c:0x1ff01f,r:.99},K:{c:0x8f40d4,r:2.31},
+  Ca:{c:0x3dff00,r:1.97},Ti:{c:0xbfc2c7,r:1.47},Cr:{c:0x8a99c7,r:1.28},Fe:{c:0xe06633,r:1.26},
+  Co:{c:0xf090a0,r:1.25},Ni:{c:0x50d050,r:1.24},Cu:{c:0xc88033,r:1.28},Zn:{c:0x7d80b0,r:1.22},
+  Br:{c:0xa62929,r:1.20},Ag:{c:0xc0c0c0,r:1.44},I:{c:0x940094,r:1.33},Ba:{c:0x00c900,r:2.17},
+  W:{c:0x2194d6,r:1.39},Pt:{c:0xd0d0e0,r:1.39},Au:{c:0xffd123,r:1.44},Pb:{c:0x575961,r:1.75},
+  DEFAULT:{c:0xaaaaaa,r:1.00}};
+function getCPK(el){return CPK[el]||CPK.DEFAULT;}
+
+// ── CIF PARSER ──
+let cifLoaded=false,cifAtoms=[],cifData=null;
+function parseCIF(text){
+  const gv=k=>{const m=text.match(new RegExp(k+'\\s+([^\\s#\\n]+)','i'));return m?m[1].replace(/['"]/g,''):null;};
+  const gn=(k,d=1)=>{const v=gv(k);return v?parseFloat(v.replace(/\(.*?\)/g,''))||d:d;};
+  const a=gn('_cell_length_a'),b=gn('_cell_length_b'),c=gn('_cell_length_c');
+  const alpha=gn('_cell_angle_alpha',90),beta=gn('_cell_angle_beta',90),gamma=gn('_cell_angle_gamma',90);
+  const sg=gv('_symmetry_space_group_name_H-M')||gv('_space_group_name_H-M_alt')||'?';
+  const sgn=gv('_symmetry_Int_Tables_number')||gv('_space_group_IT_number')||'?';
+  const crystal=gv('_symmetry_cell_setting')||gv('_space_group_crystal_system')||'?';
+  const formula=gv('_chemical_formula_sum')||gv('_chemical_formula_structural')||'?';
+  const name=gv('_chemical_name_mineral')||gv('_chemical_name_common')||'';
+  const Z=gn('_cell_formula_units_Z',1);
+  const V=gn('_cell_volume',0)||(a*b*c);
+  const atoms=[];
+  const lines=text.split('\n');
+  for(let i=0;i<lines.length;i++){
+    if(!lines[i].trim().match(/^loop_/i))continue;
+    let j=i+1,cols=[];
+    while(j<lines.length){const l=lines[j].trim();if(!l||l.startsWith('#')){j++;continue;}if(l.startsWith('_atom_site')){cols.push(l.toLowerCase());j++;}else break;}
+    if(!cols.some(c=>c.includes('fract_x')))continue;
+    const xi=cols.findIndex(c=>c.includes('fract_x')),yi=cols.findIndex(c=>c.includes('fract_y')),zi=cols.findIndex(c=>c.includes('fract_z'));
+    const li=cols.findIndex(c=>c.includes('label')),ti=cols.findIndex(c=>c.includes('type_symbol'));
+    const oi=cols.findIndex(c=>c.includes('occupancy'));
+    if(xi<0||yi<0||zi<0)continue;
+    while(j<lines.length){
+      const dl=lines[j].trim();j++;
+      if(!dl||dl.startsWith('#'))continue;
+      if(dl.startsWith('_')||dl.match(/^loop_/i))break;
+      const pts=dl.split(/\s+/).filter(Boolean);
+      if(pts.length<=Math.max(xi,yi,zi))continue;
+      const label=li>=0?pts[li]:'?';
+      const sym=ti>=0?pts[ti]:label;
+      const el=sym.replace(/[^A-Za-z]/g,'').replace(/^\d+/,'');
+      const elc=el.charAt(0).toUpperCase()+el.slice(1,2).toLowerCase();
+      const fx=parseFloat(pts[xi].replace(/\(.*?\)/g,'')),fy=parseFloat(pts[yi].replace(/\(.*?\)/g,'')),fz=parseFloat(pts[zi].replace(/\(.*?\)/g,''));
+      if(isNaN(fx)||isNaN(fy)||isNaN(fz))continue;
+      atoms.push({label,el:elc,x:fx,y:fy,z:fz,occ:oi>=0?parseFloat(pts[oi])||1:1});
+    }
+  }
+  return{a,b,c,alpha,beta,gamma,sg,sgn,crystal,formula,name,Z,V,atoms};
+}
+
+function loadCIF(file){if(!file)return;const r=new FileReader();r.onload=e=>{try{applyStructure(parseCIF(r.result),file.name);}catch(err){alert('Error CIF: '+err.message);}};r.readAsText(file);}
+function cifDragOver(e){e.preventDefault();document.getElementById('cif-zone').classList.add('drag');}
+function cifDragLeave(){document.getElementById('cif-zone').classList.remove('drag');}
+function cifDrop(e){e.preventDefault();document.getElementById('cif-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)loadCIF(f);}
+
+function applyStructure(data,fname){
+  const{a,b,c,alpha,beta,gamma,sg,sgn,crystal,formula,name,Z,V,atoms}=data;
+  cifData=data;cifAtoms=atoms;
+  cellParams={a:1,b:b/a,c:c/a,alpha,beta,gamma};
+  buildCell();buildAxes();
+  disposeGrp(gAtoms);disposeGrp(gExtra);gAtoms=null;gExtra=null;
+  const g=new THREE.Group();
+  const S=0.20;
+  const bmat=new THREE.MeshPhongMaterial({color:0x7799aa,specular:0xffffff,shininess:30,transparent:true,opacity:.65});
+  const shown=atoms.filter(at=>at.x>=-0.01&&at.x<=1.01&&at.y>=-0.01&&at.y<=1.01&&at.z>=-0.01&&at.z<=1.01);
+  shown.forEach(at=>{
+    const cpk=getCPK(at.el);
+    const mat=new THREE.MeshPhongMaterial({color:cpk.c,emissive:cpk.c,emissiveIntensity:.07,specular:0xffffff,shininess:100});
+    const m=new THREE.Mesh(new THREE.SphereGeometry(Math.min(cpk.r*S,.34),22,16),mat);
+    m.position.copy(frac2world(at.x,at.y,at.z));g.add(m);
+  });
+  const N=Math.min(shown.length,60);
+  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+    const A=shown[i],B=shown[j];
+    const dx=A.x-B.x,dy=A.y-B.y,dz=A.z-B.z,d2=dx*dx+dy*dy+dz*dz;
+    if(d2<.001||d2>.18)continue;
+    const p0=frac2world(A.x,A.y,A.z),p1=frac2world(B.x,B.y,B.z),dv=new THREE.Vector3().subVectors(p1,p0),l=dv.length();
+    if(l<.01)continue;
+    const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,l,6),bmat.clone());
+    cyl.position.copy(p0).addScaledVector(dv.clone().normalize(),l/2);
+    cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dv.clone().normalize());
+    g.add(cyl);
+  }
+  scene.add(g);gAtoms=g;cifLoaded=true;
+
+  document.getElementById('cif-zone').style.display='none';
+  document.getElementById('cif-loaded').style.display='block';
+  document.getElementById('cif-fname').textContent=fname;
+  document.getElementById('cif-det').innerHTML=`<span>${formula}</span>${name?' — <span>'+name+'</span>':''}<br>a=<span>${a.toFixed(4)}</span> b=<span>${b.toFixed(4)}</span> c=<span>${c.toFixed(4)}</span> Å`;
+  document.getElementById('badge-cif').style.display='';
+  document.getElementById('badge-cif-name').textContent=fname.replace('.cif','');
+  document.getElementById('ib-cif-info').style.display='';
+  document.getElementById('cifinfo-box').innerHTML=`
+    <div class="cif-sg">${sg}</div>
+    <span class="lbl2">N° Int. Tables:</span> <span>${sgn}</span><br>
+    <span class="lbl2">Sistema:</span> <span>${crystal!=='?'?crystal:'—'}</span><br>
+    <span class="lbl2">Fórmula:</span> <span>${formula}</span>${name?'<br><span class="lbl2">Nombre:</span> <span>'+name+'</span>':''}<br>
+    <span class="lbl2">Z:</span> <span>${Z}</span> &nbsp; <span class="lbl2">V:</span> <span>${V?V.toFixed(2):(a*b*c).toFixed(2)} Å³</span><br>
+    <span class="lbl2">a:</span> <span>${a.toFixed(4)}</span> <span class="lbl2">b:</span> <span>${b.toFixed(4)}</span> <span class="lbl2">c:</span> <span>${c.toFixed(4)} Å</span><br>
+    <span class="lbl2">α:</span> <span>${alpha.toFixed(2)}°</span> <span class="lbl2">β:</span> <span>${beta.toFixed(2)}°</span> <span class="lbl2">γ:</span> <span>${gamma.toFixed(2)}°</span><br>
+    <span class="lbl2">Átomos:</span> <span>${atoms.length}</span>`;
+  if(atoms.length>0){
+    document.getElementById('ib-atoms-wrap').style.display='';
+    document.getElementById('atom-rows').innerHTML=atoms.slice(0,25).map(at=>{
+      const hex='#'+getCPK(at.el).c.toString(16).padStart(6,'0');
+      return`<tr><td><span class="atom-dot" style="background:${hex}"></span>${at.label}</td><td>${at.x.toFixed(4)}</td><td>${at.y.toFixed(4)}</td><td>${at.z.toFixed(4)}</td></tr>`;
+    }).join('')+(atoms.length>25?`<tr><td colspan="4" style="color:var(--dim);font-size:.5rem">…+${atoms.length-25} más</td></tr>`:'');
+  }
+  document.getElementById('xrd-recalc').style.display='';
+  computeXRD();redraw();
+}
+
+function clearCIF(){
+  disposeGrp(gAtoms);gAtoms=null;cifLoaded=false;cifAtoms=[];cifData=null;
+  document.getElementById('cif-zone').style.display='';
+  document.getElementById('cif-loaded').style.display='none';
+  document.getElementById('badge-cif').style.display='none';
+  document.getElementById('ib-cif-info').style.display='none';
+  document.getElementById('xrd-recalc').style.display='none';
+  document.getElementById('cif-input').value='';
+  clearXRDCanvas();
+  cellParams={a:1,b:currentDef.b,c:currentDef.c,alpha:currentDef.al,beta:currentDef.be,gamma:currentDef.ga};
+  buildCell();buildAxes();buildExtraPoints(currentDef);redraw();
+}
+
+// ═══════════════════════════════════════
+// XRD
+// ═══════════════════════════════════════
+function computeXRD(){
+  const xc=document.getElementById('xrd-canvas');
+  const W=xc.clientWidth||238,H=xc.clientHeight||100;
+  xc.width=W*devicePixelRatio;xc.height=H*devicePixelRatio;
+  const ctx=xc.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  if(!cifData&&!cifAtoms.length){clearXRDCanvas();return;}
+  const data=cifData||{a:2.86,b:2.86,c:2.86,alpha:90,beta:90,gamma:90};
+  const{a:aA,b:bA,c:cA,alpha,beta,gamma}=data;
+  const ar=alpha*Math.PI/180,br=beta*Math.PI/180,gr=gamma*Math.PI/180;
+  const cAl=Math.cos(ar),cBe=Math.cos(br),cGa=Math.cos(gr),sAl=Math.sin(ar),sBe=Math.sin(br),sGa=Math.sin(gr);
+  const V=aA*bA*cA*Math.sqrt(Math.max(0,1-cAl*cAl-cBe*cBe-cGa*cGa+2*cAl*cBe*cGa));
+  const lambda=1.5406;
+  function dSp(h,k,l){
+    const inv=(bA*bA*cA*cA*sAl*sAl*h*h+aA*aA*cA*cA*sBe*sBe*k*k+aA*aA*bA*bA*sGa*sGa*l*l+
+               2*aA*bA*cA*cA*(cAl*cBe-cGa)*h*k+2*aA*aA*bA*cA*(cBe*cGa-cAl)*k*l+
+               2*aA*bA*bA*cA*(cGa*cAl-cBe)*h*l)/(V*V);
+    return inv>1e-10?1/Math.sqrt(inv):null;
+  }
+  const useAtoms=cifAtoms.length>0?cifAtoms:[{x:0,y:0,z:0,el:'Fe',occ:1}];
+  const raw=[];
+  for(let h=-5;h<=5;h++)for(let k=-5;k<=5;k++)for(let l=-5;l<=5;l++){
+    if(!h&&!k&&!l)continue;
+    const d=dSp(h,k,l);if(!d)continue;
+    const sinT=lambda/(2*d);
+    if(sinT<.05||sinT>1)continue;
+    const t2=2*Math.asin(sinT)*180/Math.PI;
+    let Fr=0,Fi=0;
+    useAtoms.forEach(at=>{
+      const ph=2*Math.PI*(h*at.x+k*at.y+l*at.z);
+      const Z_eff=Math.max(1,Math.round(getCPK(at.el).r*10));
+      const f=Z_eff*Math.exp(-2*(sinT)*(sinT)*1.5);
+      Fr+=f*(at.occ||1)*Math.cos(ph);Fi+=f*(at.occ||1)*Math.sin(ph);
+    });
+    const Fsq=Fr*Fr+Fi*Fi;if(Fsq<.05)continue;
+    const thR=t2*Math.PI/360;
+    const LP=(1+Math.cos(2*thR)**2)/(Math.sin(thR)**2*Math.cos(thR)+1e-9);
+    raw.push({t2,I:Fsq*LP,h,k,l,d});
+  }
+  raw.sort((a,b)=>a.t2-b.t2);
+  const peaks=[];
+  raw.forEach(p=>{const last=peaks[peaks.length-1];if(last&&Math.abs(last.t2-p.t2)<.25){last.I+=p.I;}else peaks.push({...p});});
+  if(!peaks.length){clearXRDCanvas('Sin reflexiones');return;}
+  const Imax=Math.max(...peaks.map(p=>p.I));
+  peaks.forEach(p=>p.In=p.I/Imax);
+
+  const mL=30,mR=6,mT=10,mB=18,pw=W-mL-mR,ph=H-mT-mB;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='#eaecf4';ctx.lineWidth=.8;
+  for(let t=20;t<=80;t+=10){const xp=mL+(t-10)/80*pw;ctx.beginPath();ctx.moveTo(xp,mT);ctx.lineTo(xp,mT+ph);ctx.stroke();}
+  // Axes
+  ctx.strokeStyle='#8a90b8';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(mL,mT);ctx.lineTo(mL,mT+ph);ctx.lineTo(mL+pw,mT+ph);ctx.stroke();
+  // X labels
+  ctx.fillStyle='#6a7090';ctx.font=`${Math.max(7,H*.082)}px JetBrains Mono,monospace`;ctx.textAlign='center';
+  for(let t=20;t<=80;t+=10){
+    const xp=mL+(t-10)/80*pw;
+    ctx.beginPath();ctx.moveTo(xp,mT+ph);ctx.lineTo(xp,mT+ph+3);ctx.strokeStyle='#8a90b8';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillText(t,xp,H-3);
+  }
+  ctx.fillText('2θ (°)',mL+pw/2,H-.5);
+  ctx.save();ctx.translate(8,mT+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('I',0,0);ctx.restore();
+
+  // Draw peaks
+  peaks.forEach(p=>{
+    if(p.t2<10||p.t2>90)return;
+    const xp=mL+(p.t2-10)/80*pw;
+    const peakH=ph*p.In*.9;
+    const sigma=Math.max(1.6,pw*.007);
+    const grad=ctx.createLinearGradient(0,mT+ph-peakH,0,mT+ph);
+    grad.addColorStop(0,`rgba(26,111,196,${.75*p.In+.15})`);
+    grad.addColorStop(1,'rgba(26,111,196,0.06)');
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.moveTo(xp-sigma*4.5,mT+ph);
+    for(let dx=-sigma*4.5;dx<=sigma*4.5;dx+=.35){
+      const eta=.5,g2=Math.exp(-.5*(dx/sigma)**2),lo=1/(1+(dx/sigma)**2);
+      ctx.lineTo(xp+dx,mT+ph-peakH*(eta*lo+(1-eta)*g2));
+    }
+    ctx.lineTo(xp+sigma*4.5,mT+ph);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=`rgba(10,60,150,${.65*p.In+.2})`;ctx.lineWidth=1;ctx.stroke();
+    if(p.In>.15){
+      ctx.fillStyle='#1a2a6c';ctx.font=`bold ${Math.max(6,H*.074)}px JetBrains Mono,monospace`;ctx.textAlign='center';
+      ctx.fillText(`${p.h}${p.k}${p.l}`,xp,mT+ph-peakH-3);
+    }
+  });
+  const sgLbl=cifData?cifData.sg:'?';
+  document.getElementById('xrd-info').textContent=`λ=1.5406Å (Cu Kα) · SG: ${sgLbl} · ${peaks.length} reflexiones`;
+  const top=[...peaks].sort((a,b)=>b.In-a.In).slice(0,8);
+  document.getElementById('xrd-peaks').innerHTML=top.map(p=>
+    `<span style="color:var(--accent)">(${p.h}${p.k}${p.l})</span> `+
+    `<span style="color:var(--accent3)">${p.t2.toFixed(2)}°</span> `+
+    `<span style="color:var(--dim)">d=${p.d.toFixed(3)}Å I=${(p.In*100).toFixed(0)}%</span>`
+  ).join('<br>');
+}
+
+function clearXRDCanvas(msg='Carga un CIF para simular XRD'){
+  const xc=document.getElementById('xrd-canvas');
+  const W=xc.clientWidth||238,H=xc.clientHeight||100;
+  xc.width=W;xc.height=H;
+  const ctx=xc.getContext('2d');
+  ctx.fillStyle='#f8f9fc';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#9aa0b8';ctx.font='10px Inter,sans-serif';ctx.textAlign='center';
+  ctx.fillText(msg,W/2,H/2);
+  document.getElementById('xrd-info').textContent=msg;
+  document.getElementById('xrd-peaks').innerHTML='';
+}
+
+// ═══════════════════════════════════════
+// LABELS
+// ═══════════════════════════════════════
+const AXL=AX+.17;
+function getFixedLbls(){
+  return{
+    'L-a':frac2world(AXL,0,0),'L-b':frac2world(0,AXL,0),'L-c':frac2world(0,0,AXL),
+    'L-000':frac2world(-.06,-.06,-.06),'L-100':frac2world(1.07,-.06,-.06),
+    'L-010':frac2world(-.06,1.12,-.06),'L-001':frac2world(-.06,-.06,1.12),'L-111':frac2world(1.07,1.12,1.12),
+  };
+}
+let dynLbls={};
+function proj(p3){const V=p3.clone().project(camera);return{x:(V.x+1)/2*canvas.clientWidth,y:(-V.y+1)/2*canvas.clientHeight,z:V.z};}
+function placeLabel(id,pos3){
+  const el=document.getElementById(id);if(!el)return;
+  const{x,y,z}=proj(pos3);const W=canvas.clientWidth,H=canvas.clientHeight;
+  if(z>1||x<-100||x>W+100||y<-60||y>H+60){el.style.display='none';return;}
+  el.style.display='block';el.style.left=x+'px';el.style.top=y+'px';
+}
+function updateLabels(){
+  const fl=getFixedLbls();
+  for(const[id,p] of Object.entries(fl))placeLabel(id,p);
+  for(const[id,p] of Object.entries(dynLbls))placeLabel(id,p);
+}
+
+// ═══════════════════════════════════════
+// ARROWS & PLANES
+// ═══════════════════════════════════════
+function makeArrow(from,to,color=0x1a6fc4,op=1){
+  const grp=new THREE.Group();
+  const dv=new THREE.Vector3().subVectors(to,from),l=dv.length();if(l<.001)return grp;
+  const dn=dv.clone().normalize();
+  const mat=new THREE.MeshPhongMaterial({color,specular:0xffffff,shininess:90,transparent:op<1,opacity:op});
+  const sh=new THREE.Mesh(new THREE.CylinderGeometry(.027,.027,l,10),mat.clone());
+  sh.position.copy(from).addScaledVector(dn,l/2);sh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dn);grp.add(sh);
+  const hl=Math.min(.12,l*.22);
+  const hd=new THREE.Mesh(new THREE.ConeGeometry(.056,hl,10),mat.clone());
+  hd.position.copy(to).addScaledVector(dn,-hl/2);hd.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dn);grp.add(hd);
+  const em=new THREE.MeshPhongMaterial({color,emissive:color,emissiveIntensity:.4,specular:0xffffff,shininess:120,transparent:op<1,opacity:op});
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(.067,14,10),em);dot.position.copy(to);grp.add(dot);
+  return grp;
+}
+function drawDir(u,v,w,color=0xcc2222,op=1,list=false){
+  const oa=u<0?1:0,ob=v<0?1:0,oc=w<0?1:0;
+  const arr=makeArrow(frac2world(oa,ob,oc),frac2world(oa+u,ob+v,oc+w),color,op);
+  scene.add(arr);if(list)gArrows.push(arr);else gArrow=arr;return arr;
+}
+function setDispLabels(u,v,w,step=-1){
+  ['L-du','L-dv','L-dw','L-ep'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  dynLbls={};
+  const oa=u<0?1:0,ob=v<0?1:0,oc=w<0?1:0,full=step<0||step>=4;
+  if((full||step>=1)&&u!==0){const m=frac2world(oa+u/2,ob,oc);dynLbls['L-du']=new THREE.Vector3(m.x,m.y+.16,m.z);const e=document.getElementById('L-du');if(e){e.textContent=`u=${u>0?'+':''}${u}·a`;e.style.display='block';}}
+  if((full||step>=2)&&v!==0){const m=frac2world(oa+u,ob+v/2,oc);dynLbls['L-dv']=new THREE.Vector3(m.x,m.y+.16,m.z);const e=document.getElementById('L-dv');if(e){e.textContent=`v=${v>0?'+':''}${v}·b`;e.style.display='block';}}
+  if((full||step>=3)&&w!==0){const m=frac2world(oa+u,ob+v,oc+w/2);dynLbls['L-dw']=new THREE.Vector3(m.x+.15,m.y,m.z);const e=document.getElementById('L-dw');if(e){e.textContent=`w=${w>0?'+':''}${w}·c`;e.style.display='block';}}
+  if(full){const ep=frac2world(oa+u,ob+v,oc+w);dynLbls['L-ep']=new THREE.Vector3(ep.x,ep.y+.19,ep.z);const e=document.getElementById('L-ep');if(e){e.textContent=`(${oa+u},${ob+v},${oc+w})`;e.style.display='block';}}
+}
+function makePlane(h,k,l,color=0x1a6fc4,opPct=55){
+  const op=opPct/100,grp=new THREE.Group();
+  if(!h&&!k&&!l)return grp;
+  const eps=1e-9,verts=[];
+  [[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,1,1]].forEach((_,i,W)=>{});
+  const cubeEdges=[[[0,0,0],[1,0,0]],[[0,1,0],[1,1,0]],[[0,0,1],[1,0,1]],[[0,1,1],[1,1,1]],[[0,0,0],[0,1,0]],[[1,0,0],[1,1,0]],[[0,0,1],[0,1,1]],[[1,0,1],[1,1,1]],[[0,0,0],[0,0,1]],[[1,0,0],[1,0,1]],[[0,1,0],[0,1,1]],[[1,1,0],[1,1,1]]];
+  cubeEdges.forEach(([p0,p1])=>{
+    const f=p=>h*p[0]+k*p[1]+l*p[2]-1,f0=f(p0),f1=f(p1);
+    if(Math.abs(f1-f0)<eps)return;
+    const t=-f0/(f1-f0);if(t<-eps||t>1+eps)return;
+    const tc=Math.max(0,Math.min(1,t));
+    verts.push(frac2world(p0[0]+tc*(p1[0]-p0[0]),p0[1]+tc*(p1[1]-p0[1]),p0[2]+tc*(p1[2]-p0[2])));
+  });
+  if(verts.length<3)return grp;
+  const cen=verts.reduce((a,v)=>a.clone().add(v),new THREE.Vector3()).divideScalar(verts.length);
+  const nF=new THREE.Vector3(h,k,l).normalize(),norm=c2t(nF.x,nF.z,nF.y).normalize();
+  const ref=verts[0].clone().sub(cen).normalize(),perp=new THREE.Vector3().crossVectors(norm,ref).normalize();
+  verts.sort((a,b)=>{const da=a.clone().sub(cen),db=b.clone().sub(cen);return Math.atan2(da.dot(perp),da.dot(ref))-Math.atan2(db.dot(perp),db.dot(ref));});
+  const shape=new THREE.Shape();
+  const prj=verts.map(v=>{const d=v.clone().sub(cen);return new THREE.Vector2(d.dot(ref),d.dot(perp));});
+  shape.moveTo(prj[0].x,prj[0].y);for(let i=1;i<prj.length;i++)shape.lineTo(prj[i].x,prj[i].y);shape.closePath();
+  const sg2=new THREE.ShapeGeometry(shape);
+  const pos=sg2.attributes.position;
+  for(let i=0;i<pos.count;i++){const p3=cen.clone().addScaledVector(ref,pos.getX(i)).addScaledVector(perp,pos.getY(i));pos.setXYZ(i,p3.x,p3.y,p3.z);}
+  sg2.computeVertexNormals();
+  grp.add(new THREE.Mesh(sg2,new THREE.MeshPhongMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:op,depthWrite:false,specular:0xffffff,shininess:20})));
+  const eMat=new THREE.MeshPhongMaterial({color,specular:0xffffff,shininess:50});
+  const ep=[...verts,verts[0]];
+  for(let i=0;i<ep.length-1;i++){
+    const ef=ep[i],et=ep[i+1],ed=new THREE.Vector3().subVectors(et,ef),el2=ed.length();if(el2<.01)continue;
+    const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,el2,6),eMat.clone());
+    cyl.position.copy(ef).addScaledVector(ed.clone().normalize(),el2/2);
+    cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),ed.clone().normalize());grp.add(cyl);
+  }
+  grp.add(makeArrow(cen,cen.clone().add(norm.clone().multiplyScalar(.55)),0xcc2222,1));
+  return grp;
+}
+function drawPlane(h,k,l,color=0x1a6fc4,opPct=55,list=false){const p=makePlane(h,k,l,color,opPct);scene.add(p);if(list)gPlanes.push(p);else gPlane=p;}
+
+function getFamily(u,v,w){
+  const perms=new Set();
+  [[u,v,w],[u,w,v],[v,u,w],[v,w,u],[w,u,v],[w,v,u]].forEach(([a,b,c])=>{
+    [[1,1,1],[1,1,-1],[1,-1,1],[-1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]].forEach(([sa,sb,sc])=>{
+      if((a===0&&sa<0)||(b===0&&sb<0)||(c===0&&sc<0))return;
+      perms.add(`${a*sa},${b*sb},${c*sc}`);
+    });
+  });
+  return Array.from(perms).map(k=>k.split(',').map(Number)).filter(([a,b,c])=>Math.abs(a)<=2&&Math.abs(b)<=2&&Math.abs(c)<=2);
+}
+const FC=[0x1a6fc4,0xcc2222,0xc07800,0x8822cc,0x1a8c1a,0xcc6600,0x008888,0xcc2288,0x2255cc,0xcc7722,0x228866,0xaa2244];
+function fi(n){return n<0?`${Math.abs(n)}\u0305`:`${n}`;}
+function fd(u,v,w){return`[${fi(u)}${fi(v)}${fi(w)}]`;}
+function fp(h,k,l){return`(${fi(h)}${fi(k)}${fi(l)})`;}
+
+// ═══════════════════════════════════════
+// STATE & UI
+// ═══════════════════════════════════════
+let mode='direction',cDir=[1,1,0],cPln=[1,1,0],animStep=-1,animTimer=null,plOp=55;
+
+function updateHUD(){
+  const[u,v,w]=cDir,[h,k,l]=cPln;
+  document.getElementById('hud-d').textContent=fd(u,v,w);
+  document.getElementById('hud-p').textContent=fp(h,k,l);
+  document.getElementById('hud-d').className='hv '+(mode==='direction'?'d':mode==='family-dir'?'f':'');
+  document.getElementById('hud-p').className='hv '+(mode==='plane'?'pv':mode==='family-plane'?'f':'');
+  const epR=document.getElementById('hud-ep-row'),icR=document.getElementById('hud-ic-row');
+  if(mode==='direction'||mode==='family-dir'){
+    epR.style.display='';icR.style.display='none';
+    const oa=u<0?1:0,ob=v<0?1:0,oc=w<0?1:0;
+    document.getElementById('hud-ex').textContent=oa+u;
+    document.getElementById('hud-ey').textContent=ob+v;
+    document.getElementById('hud-ez').textContent=oc+w;
+    const sq=u*u+v*v+w*w;
+    document.getElementById('hud-len').textContent=`√${sq}≈${Math.sqrt(sq).toFixed(3)}`;
+  }else{
+    epR.style.display='none';icR.style.display='';
+    const ic=n=>n===0?'∞':`${(1/n).toFixed(2)}`;
+    document.getElementById('hud-ic').innerHTML=`<span class="cx">a=${ic(h)}</span> <span class="cy">b=${ic(k)}</span> <span class="cz">c=${ic(l)}</span>`;
+    const sq=h*h+k*k+l*l;
+    document.getElementById('hud-len').textContent=sq>0?`d≈${(1/Math.sqrt(sq)).toFixed(3)}a`:'—';
+  }
+  document.getElementById('badge-val').textContent=
+    mode==='direction'?fd(u,v,w):mode==='family-dir'?`〈${u}${v}${w}〉`:mode==='plane'?fp(h,k,l):`{${h}${k}${l}}`;
+}
+function updateRight(){
+  const[u,v,w]=cDir,[h,k,l]=cPln;
+  ['ib-dir-info','ib-pln-info','ib-fam-info'].forEach(id=>document.getElementById(id).style.display='none');
+  if(mode==='direction'){
+    document.getElementById('ib-dir-info').style.display='';
+    document.getElementById('ib-dir-txt').innerHTML=`<span style="color:var(--xa)">${u}·a</span> + <span style="color:var(--ya)">${v}·b</span> + <span style="color:var(--za)">${w}·c</span>`;
+    const sq=u*u+v*v+w*w;
+    document.getElementById('ib-dir-vec').innerHTML=`${fd(u,v,w)}<br>|r|=a√${sq}≈${Math.sqrt(sq).toFixed(3)}a`;
+    document.getElementById('ib-dsp').innerHTML=`d=a/√${sq}≈${sq>0?(1/Math.sqrt(sq)).toFixed(4):0}a`;
+  }else if(mode==='plane'){
+    document.getElementById('ib-pln-info').style.display='';
+    document.getElementById('ib-pln-txt').innerHTML=`Plano <strong>${fp(h,k,l)}</strong>`;
+    const ic=n=>n===0?'∞':`${(1/n).toFixed(2)}`;
+    document.getElementById('ic-rows').innerHTML=`<tr><td>a</td><td class="v">${h}</td><td>${ic(h)}</td></tr><tr><td>b</td><td class="v">${k}</td><td>${ic(k)}</td></tr><tr><td>c</td><td class="v">${l}</td><td>${ic(l)}</td></tr>`;
+    const sq=h*h+k*k+l*l;
+    document.getElementById('ib-dsp').innerHTML=`d${fp(h,k,l)}=a/√${sq}≈${sq>0?(1/Math.sqrt(sq)).toFixed(4):0}a`;
+  }else{
+    document.getElementById('ib-fam-info').style.display='';
+    const isD=mode==='family-dir',fam=getFamily(isD?u:h,isD?v:k,isD?w:l);
+    document.getElementById('ib-fam-txt').innerHTML=`${fam.length} equivalentes:`;
+    document.getElementById('fam-list').innerHTML=fam.map(([a,b,c])=>`<span class="ft">${isD?fd(a,b,c):fp(a,b,c)}</span>`).join('');
+  }
+  updateHUD();
+}
+function updateSteps(){
+  const cnt=document.getElementById('steps'),[u,v,w]=cDir,[h,k,l]=cPln;
+  if(mode==='plane'||mode==='family-plane'){
+    const ic=n=>n===0?'∞':`1/${n}=${(1/n).toFixed(2)}`;
+    cnt.innerHTML=`<div class="si active"><div class="sn">A</div><div class="st">Intercepts: <span class="xa">a=${ic(h)}</span>, <span class="ya">b=${ic(k)}</span>, <span class="za">c=${ic(l)}</span></div></div><div class="si active"><div class="sn">B</div><div class="st">Recíprocos: <span class="xa">h=${h}</span> <span class="ya">k=${k}</span> <span class="za">l=${l}</span></div></div><div class="si active"><div class="sn">C</div><div class="st">Plano: <strong>${fp(h,k,l)}</strong></div></div>`;
+    return;
+  }
+  const oa=u<0?1:0,ob=v<0?1:0,oc=w<0?1:0;
+  cnt.innerHTML=[
+    {t:'Origen',tx:(u<0||v<0||w<0)?`Neg.→origen (<strong>${oa},${ob},${oc}</strong>)`:`Origen en <strong>(0,0,0)</strong>`},
+    {t:'Eje a',tx:u===0?`u=0—sin mov. <span class="xa">a</span>`:`<span class="xa">${u>0?'+':''}${u}·a</span>`},
+    {t:'Eje b',tx:v===0?`v=0—sin mov. <span class="ya">b</span>`:`<span class="ya">${v>0?'+':''}${v}·b</span>`},
+    {t:'Eje c',tx:w===0?`w=0—sin mov. <span class="za">c</span>`:`<span class="za">${w>0?'+':''}${w}·c</span>`},
+    {t:'Resultado',tx:`<strong>(${oa},${ob},${oc})</strong>→<strong>(${oa+u},${ob+v},${oc+w})</strong> = <strong>${fd(u,v,w)}</strong>`}
+  ].map((s,i)=>`<div class="si ${animStep>=i?(animStep>i?'done':'active'):''}" id="si-${i}"><div class="sn">${i+1}</div><div class="st"><strong>${s.t}:</strong> ${s.tx}</div></div>`).join('');
+}
+function updateNota(){
+  const[u,v,w]=cDir,[h,k,l]=cPln;
+  document.getElementById('dir-nota').textContent=fd(u,v,w);
+  document.getElementById('pln-nota').textContent=fp(h,k,l);
+  updateHUD();
+}
+function setMode(m){
+  mode=m;
+  ['dir','famd','pln','famp'].forEach(id=>document.getElementById('btn-'+id).classList.remove('active'));
+  document.getElementById('btn-'+{direction:'dir','family-dir':'famd',plane:'pln','family-plane':'famp'}[m]).classList.add('active');
+  document.getElementById('inp-dir').style.display=(m==='direction'||m==='family-dir')?'':'none';
+  document.getElementById('inp-pln').style.display=(m==='plane'||m==='family-plane')?'':'none';
+  const btn=document.getElementById('abtn');
+  btn.textContent=(m==='plane'||m==='family-plane')?'▶ Mostrar Plano':'▶ Animar';
+  btn.className='abtn'+(m==='plane'||m==='family-plane'?' pb':'');
+  document.getElementById('slrow').style.display=(m==='plane'||m==='family-plane')?'':'none';
+  document.getElementById('badge-mode').innerHTML=`MODO: <span>${{direction:'DIRECCIÓN','family-dir':'FAMILIA〈〉',plane:'PLANO',  'family-plane':'FAM.PLANOS'}[m]}</span>`;
+  redraw();
+}
+function onIdx(){
+  clearTimeout(animTimer);animStep=-1;
+  cDir=[parseInt(document.getElementById('du').value)||0,parseInt(document.getElementById('dv').value)||0,parseInt(document.getElementById('dw').value)||0];
+  cPln=[parseInt(document.getElementById('ph').value)||0,parseInt(document.getElementById('pk').value)||0,parseInt(document.getElementById('pl').value)||0];
+  updateNota();updateSteps();updateRight();redraw();
+}
+function redraw(){
+  clearVectors();
+  if(mode==='direction'){drawDir(...cDir);setDispLabels(...cDir);}
+  else if(mode==='family-dir')getFamily(...cDir).forEach(([u,v,w],i)=>drawDir(u,v,w,FC[i%FC.length],.9,true));
+  else if(mode==='plane')drawPlane(...cPln,0x1a6fc4,plOp);
+  else getFamily(...cPln).forEach(([h,k,l],i)=>{const p=makePlane(h,k,l,FC[i%FC.length],plOp*.75);scene.add(p);gPlanes.push(p);});
+  updateRight();updateSteps();
+}
+function resetView(){
+  clearVectors();
+  ['du','dv','dw'].forEach((id,i)=>document.getElementById(id).value=[1,1,0][i]);
+  ['ph','pk','pl'].forEach((id,i)=>document.getElementById(id).value=[1,1,0][i]);
+  cDir=[1,1,0];cPln=[1,1,0];animStep=-1;clearTimeout(animTimer);
+  updateNota();updateSteps();updateRight();
+  if(mode==='direction'){drawDir(...cDir);setDispLabels(...cDir);}
+}
+function triggerAnim(){
+  if(mode==='plane'||mode==='family-plane'){redraw();return;}
+  clearVectors();animStep=-1;nextStep();
+}
+function nextStep(){
+  animStep++;
+  document.querySelectorAll('.si').forEach((el,i)=>{el.classList.remove('active','done');if(i<animStep)el.classList.add('done');if(i===animStep)el.classList.add('active');});
+  const[u,v,w]=cDir,oa=u<0?1:0,ob=v<0?1:0,oc=w<0?1:0;
+  if(animStep===0){const dot=new THREE.Mesh(new THREE.SphereGeometry(.09,18,14),new THREE.MeshPhongMaterial({color:0xcc8800,emissive:0xcc8800,emissiveIntensity:.6,specular:0xffffff,shininess:120}));dot.position.copy(frac2world(oa,ob,oc));scene.add(dot);gArrow=dot;}
+  else if(animStep===1&&u!==0){const s=makeArrow(frac2world(oa,ob,oc),frac2world(oa+u,ob,oc),0xcc2222,.95);scene.add(s);gArrows.push(s);}
+  else if(animStep===2&&v!==0){const s=makeArrow(frac2world(oa+u,ob,oc),frac2world(oa+u,ob+v,oc),0x1a8c1a,.95);scene.add(s);gArrows.push(s);}
+  else if(animStep===3&&w!==0){const s=makeArrow(frac2world(oa+u,ob+v,oc),frac2world(oa+u,ob+v,oc+w),0x1a50cc,.95);scene.add(s);gArrows.push(s);}
+  else if(animStep===4)drawDir(u,v,w);
+  setDispLabels(u,v,w,animStep);
+  if(animStep<4)animTimer=setTimeout(nextStep,950);
+}
+function setOp(v){plOp=parseInt(v);document.getElementById('sl-val').textContent=v+'%';redraw();}
+function switchTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+  el.classList.add('active');
+  const pg=document.getElementById('page-'+tab);
+  pg.classList.add('active');pg.style.display=tab==='vis'?'flex':'block';
+  if(tab==='vis')setTimeout(resize,50);
+}
+function las(m,u,v,w){
+  cDir=[u,v,w];cPln=[u,v,w];
+  ['du','dv','dw'].forEach((id,i)=>document.getElementById(id).value=[u,v,w][i]);
+  ['ph','pk','pl'].forEach((id,i)=>document.getElementById(id).value=[u,v,w][i]);
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+  document.querySelector('.tab').classList.add('active');
+  const pg=document.getElementById('page-vis');pg.classList.add('active');pg.style.display='flex';
+  updateNota();setMode(m);setTimeout(resize,50);
+}
+
+// RENDER
+function loop(){requestAnimationFrame(loop);renderer.render(scene,camera);updateLabels();}
+loop();
+
+// INIT
+setLattice('cP');
+setMode('direction');
+updateNota();
+clearXRDCanvas();
+</script>
+</body>
+</html>
